@@ -6,38 +6,40 @@ class T3 implements ITextTest {
   @override
   String get authorName => '나상원';
 
-  List<List<String>> matrix = List.generate(20, (i) => List.generate(40, (i) => '-', growable: false), growable: false);
+  List<List<String>> matrix = List.generate(20, (i) => List.generate(60, (i) => '-', growable: false), growable: false);
 
-  int lastLine = 0;
-  double verticalTime = 0;
-  double horizontalTime = 0;
-  int horizontalOffset = 1;
+  int horizontalDirection = 1;
+  int heightOffset = 10;
+  double degreePerMS = 180 / 750; // seconds to cover 1 degree
+  double linePerMS = 60 / 750;
+  double amplitude = 10;
 
-  double secondsPerDegree = 750 / 180; // seconds to cover 1 degree
-  double numRows = 20;
-  int currentDegree = 0;
-  double currentHeight = 0;
-  double heightOffset = -10;
-
-  double horiSecondPerLine = 750 / 20;
-  double currentColumn = 0;
+  int prevHeight = 0;  
+  int currentHeight = 0;
+  int prevColumn = 0;
+  int currentColumn = 0;
   
   @override
   List<String> getOutput(Duration elapsed, Duration delta) {
-    verticalTime += delta.inMilliseconds;
-    horizontalTime += delta.inMilliseconds;
-    if(verticalTime > secondsPerDegree){ 
-      verticalTime = 0;
-      currentDegree++;
-      currentHeight = (numRows * sin(currentDegree * ( pi / 180 ))) + heightOffset;
-      
+    final degreeDelta = degreePerMS * elapsed.inMilliseconds;
+    currentHeight = (amplitude * sin(degreeDelta * ( pi / 180 ))).round() + heightOffset;
+
+    var horizontalDelta = linePerMS * delta.inMilliseconds * horizontalDirection; 
+    currentColumn = (currentColumn + horizontalDelta).round();
+    if(currentColumn >= 59) {
+      currentColumn = 59;
+      horizontalDirection *= -1;
+    }
+    if(currentColumn <= 0){
+      currentColumn = 0;
+      horizontalDirection *= -1;
     }
 
-    if(horizontalTime > horiSecondPerLine){
-      horizontalTime = 0;
-      currentColumn += horizontalOffset;
-      if(currentColumn >= 19 || currentColumn <= 0) horizontalOffset *= -1;
-
+    matrix[prevHeight][prevColumn] = '-';
+    if(currentHeight < 20){
+      matrix[currentHeight][currentColumn] = 'K';
+      prevHeight = currentHeight;
+      prevColumn = currentColumn;
     }
     return matrixToDrawing(matrix);
   }
@@ -47,7 +49,14 @@ class T3 implements ITextTest {
   }
 
   List<String> matrixToDrawing(List<List<String>> matrix){
-
-    return [];
+    List<String> result = [];
+    for(int i = 0; i < matrix.length; i++){
+      final buffer = StringBuffer('');
+      for(int j = 0; j < matrix[i].length; j++){
+        buffer.write(matrix[i][j]);
+      }
+      result.add(buffer.toString());
+    }
+    return result;
   }
 }
