@@ -35,9 +35,6 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
   double? x;
   double? y;
   double? z;
-  Matrix4 transformA = Matrix4.identity();
-  Matrix4 transformB = Matrix4.identity();
-
 
   @override
   void initState() {
@@ -50,15 +47,20 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
 
     tiltController.addListener(() { 
       setState(() {
-        y = (original_y! * cos(tiltAnimation.value)) - (original_z! * sin(tiltAnimation.value));
-        z = (original_y! * sin(tiltAnimation.value)) + (original_z! * cos(tiltAnimation.value));
+        print(tiltAnimation.value);
+        double? prev_y = original_y;
+        double? prev_z = original_z;
+        y = (prev_y! * cos(tiltAnimation.value)) - (prev_z! * sin(tiltAnimation.value));
+        z = (prev_y * sin(tiltAnimation.value)) + (prev_z * cos(tiltAnimation.value));
         print('new: $x , $y, $z');
       });  
     });
     rotateController.addListener(() { 
       setState(() {
-        x = (original_x! * cos(rotateAnimation.value)) - (original_y! * sin(rotateAnimation.value));
-        y = (original_x! * sin(rotateAnimation.value)) + (original_y! * cos(rotateAnimation.value)); 
+        double? prev_x = original_x;
+        double? prev_y = original_y;
+        x = (prev_x! * cos(rotateAnimation.value)) - (prev_y! * sin(rotateAnimation.value));
+        y = (prev_x * sin(rotateAnimation.value)) + (prev_y * cos(rotateAnimation.value)); 
         print('new1: $x , $y');
       });  
     });
@@ -77,11 +79,11 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
               Positioned(
                 top: 30,
                 child: Transform (
-                  alignment: Alignment.topLeft,
+                  alignment: FractionalOffset.center,
                   transform: Matrix4.identity()
-                    // ..setEntry(3, 2, z_perspective)
+                    ..setEntry(3, 2, z_perspective)
                     ..rotateX(tiltAnimation.value)
-                    ..rotateZ(rotateAnimation.value)
+                    // ..rotateZ(rotateAnimation.value)
                   ,
                   child: Container (
                     clipBehavior: Clip.hardEdge,
@@ -113,59 +115,30 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
                     x = original_x;
                     y = original_y;
                     z = 0;
-                    // original_x = 299;
-                    // original_y = 299;
-                    // original_z = 0;
-                    // x = original_x;
-                    // y = original_y;
-                    // z = 0;
                     print('${details.localPosition.dx}, ${details.localPosition.dy}');
                   });
                 },
-                child: Container(
-                                            margin: const EdgeInsets.only(bottom: 40),
-                  decoration: BoxDecoration (
-                    border: Border.all(color: Colors.green, width: 2)
-                  ),
-                  child: Stack (
-                    clipBehavior: Clip.none,
-                    children: [
-                      Transform (
-                        // alignment: FractionalOffset.center,
-                        // alignment: Alignment.topLeft,
-                        transform: Matrix4.identity()
-                          // ..setEntry(3, 2, z_perspective)
-                          ..rotateX(tiltAnimation.value)
-                          ..rotateZ(rotateAnimation.value)
-                        ,
-                        child: Container (
-                          clipBehavior: Clip.hardEdge,
-                          width: 300,
-                          height: 300,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Image.network('https://pbs.twimg.com/profile_images/1688001061565628416/1QctHAo__400x400.jpg')
-                        )
-                      ),
-                      if(tilted)
-                        Positioned (
-                          top: y! - 31,
-                          left: x! - 17,
-                          // top: 0 - 31,
-                          // left: 0 - 17,
-                          child: const Icon (
-                            Icons.location_pin,
-                            color: Colors.blue,
-                            size: 35
-                          )
-                        )
-                    ],
-                  ),
+                child: Transform (
+                  alignment: FractionalOffset.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, z_perspective)
+                    ..rotateX(tiltAnimation.value)
+                    // ..rotateZ(rotateAnimation.value)
+                  ,
+                  child: Container (
+                    clipBehavior: Clip.hardEdge,
+                    width: 300,
+                    height: 300,
+                    margin: const EdgeInsets.only(bottom: 40),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Image.network('https://pbs.twimg.com/profile_images/1688001061565628416/1QctHAo__400x400.jpg')
+                  )
                 ),
               ),
             ),
-            if(original_x != null && original_y != null && !tilted)
+            if(original_x != null && original_y != null)
               Positioned (
                 top: y! - 31,
                 left: x! - 17,
@@ -222,7 +195,7 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
                     if(!tilted){
                       tiltController.forward();
                       Timer(const Duration(milliseconds: 500), () {
-                        rotateController.repeat();
+                        // rotateController.repeat();
                       });
                     }
                     else {
