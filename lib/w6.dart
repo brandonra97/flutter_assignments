@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:lib/study_lib.dart';
+import 'package:vector_math/vector_math_64.dart' as vector;
 
 class W6 implements IWidgetTest {
   @override
@@ -35,9 +36,16 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
   double? x;
   double? y;
   double? z;
+
+  double prevTiltAnimationVal = 0;
+  double deltaTilt = 0;
+  double prevRotateAnimationVal = 0;
+  double deltaRotate = 0;
+
   Matrix4 transformA = Matrix4.identity();
   Matrix4 transformB = Matrix4.identity();
-
+  late vector.Vector4 coordinates;
+  late vector.Vector4 altered;
 
   @override
   void initState() {
@@ -48,17 +56,28 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
     tiltAnimation = Tween<double>(begin: 0.0, end: -1.0).animate(tiltController);
     rotateAnimation = Tween<double>(begin: 0.0, end: 2 * pi).animate(rotateController);
 
+    transformA.setEntry(3, 2, z_perspective);
+    transformB.setEntry(3, 2, z_perspective);
+
     tiltController.addListener(() { 
       setState(() {
-        y = (original_y! * cos(tiltAnimation.value)) - (original_z! * sin(tiltAnimation.value));
-        z = (original_y! * sin(tiltAnimation.value)) + (original_z! * cos(tiltAnimation.value));
-        print('new: $x , $y, $z');
+        deltaTilt = tiltAnimation.value - prevTiltAnimationVal;
+        prevTiltAnimationVal = tiltAnimation.value;
+        transformA.rotateX(deltaTilt);
+        transformB.rotateX(deltaTilt);
+        altered = vector.Vector4.copy(coordinates);
+        transformA.transform(altered);
+        print('new: $coordinates');
       });  
     });
     rotateController.addListener(() { 
       setState(() {
-        x = (original_x! * cos(rotateAnimation.value)) - (original_y! * sin(rotateAnimation.value));
-        y = (original_x! * sin(rotateAnimation.value)) + (original_y! * cos(rotateAnimation.value)); 
+        deltaRotate = rotateAnimation.value - prevRotateAnimationVal;
+        prevRotateAnimationVal = rotateAnimation.value;
+        double? prev_x = original_x;
+        double? prev_y = original_y;
+        x = (prev_x! * cos(rotateAnimation.value)) - (prev_y! * sin(rotateAnimation.value));
+        y = (prev_x * sin(rotateAnimation.value)) + (prev_y * cos(rotateAnimation.value)); 
         print('new1: $x , $y');
       });  
     });
@@ -77,11 +96,10 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
               Positioned(
                 top: 30,
                 child: Transform (
-                  alignment: Alignment.topLeft,
-                  transform: Matrix4.identity()
-                    // ..setEntry(3, 2, z_perspective)
-                    ..rotateX(tiltAnimation.value)
-                    ..rotateZ(rotateAnimation.value)
+                  alignment: FractionalOffset.center,
+                  transform: transformB
+                    // ..rotateX(deltaTilt)
+                    // ..rotateZ(deltaRotate)
                   ,
                   child: Container (
                     clipBehavior: Clip.hardEdge,
@@ -113,62 +131,34 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
                     x = original_x;
                     y = original_y;
                     z = 0;
-                    // original_x = 299;
-                    // original_y = 299;
-                    // original_z = 0;
-                    // x = original_x;
-                    // y = original_y;
-                    // z = 0;
+                    coordinates = vector.Vector4(original_x!, original_y!, 0, 1);
+                    altered = vector.Vector4(original_x!, original_y!, 0, 1);
                     print('${details.localPosition.dx}, ${details.localPosition.dy}');
                   });
                 },
-                child: Container(
-                                            margin: const EdgeInsets.only(bottom: 40),
-                  decoration: BoxDecoration (
-                    border: Border.all(color: Colors.green, width: 2)
-                  ),
-                  child: Stack (
-                    clipBehavior: Clip.none,
-                    children: [
-                      Transform (
-                        // alignment: FractionalOffset.center,
-                        // alignment: Alignment.topLeft,
-                        transform: Matrix4.identity()
-                          // ..setEntry(3, 2, z_perspective)
-                          ..rotateX(tiltAnimation.value)
-                          ..rotateZ(rotateAnimation.value)
-                        ,
-                        child: Container (
-                          clipBehavior: Clip.hardEdge,
-                          width: 300,
-                          height: 300,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Image.network('https://pbs.twimg.com/profile_images/1688001061565628416/1QctHAo__400x400.jpg')
-                        )
-                      ),
-                      if(tilted)
-                        Positioned (
-                          top: y! - 31,
-                          left: x! - 17,
-                          // top: 0 - 31,
-                          // left: 0 - 17,
-                          child: const Icon (
-                            Icons.location_pin,
-                            color: Colors.blue,
-                            size: 35
-                          )
-                        )
-                    ],
-                  ),
+                child: Transform (
+                  alignment: FractionalOffset.center,
+                  transform: transformA
+                    // ..rotateX(deltaTilt)
+                    // ..rotateZ(deltaRotate)
+                  ,
+                  child: Container (
+                    clipBehavior: Clip.hardEdge,
+                    width: 300,
+                    height: 300,
+                    margin: const EdgeInsets.only(bottom: 40),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Image.network('https://pbs.twimg.com/profile_images/1688001061565628416/1QctHAo__400x400.jpg')
+                  )
                 ),
               ),
             ),
-            if(original_x != null && original_y != null && !tilted)
+            if(original_x != null && original_y != null)
               Positioned (
-                top: y! - 31,
-                left: x! - 17,
+                top: altered.y - 31,
+                left: altered.x - 17,
                 // top: 0 - 31,
                 // left: 0 - 17,
                 child: const Icon (
@@ -222,15 +212,17 @@ class _W6WidgetState extends State<W6Widget> with TickerProviderStateMixin {
                     if(!tilted){
                       tiltController.forward();
                       Timer(const Duration(milliseconds: 500), () {
-                        rotateController.repeat();
+                        // rotateController.repeat();
                       });
                     }
                     else {
                       tiltController.reverse();
+                      prevRotateAnimationVal = rotateAnimation.value;
                       if(rotateAnimation.value > pi){
                         // rotateController.forward();
                       }
                       else {
+                        deltaTilt = 0;
                         // rotateController.reverse();
                       }
                     }
